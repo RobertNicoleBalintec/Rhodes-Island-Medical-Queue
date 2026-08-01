@@ -1,0 +1,11 @@
+from django.urls import path
+from core import views
+
+urlpatterns = [
+    path('', views.booking_view, name='booking'),
+    path('ticket/<str:queue_number>/', views.ticket_detail_view, name='ticket_detail'),
+    path('display/', views.display_view, name='display'),
+    path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('dashboard/call/<int:counter_id>/<str:queue_type>/', views.call_next_counter, name='call_next_counter'),
+    path('dashboard/status/<int:appt_id>/<str:new_status>/', views.update_status, name='update_status'),
+]

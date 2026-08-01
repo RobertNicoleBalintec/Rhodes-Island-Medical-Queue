@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhodes Queue Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ak-yellow: #f5d000;
+            --ak-dark: #121212;
+            --ak-panel: #1f1f1f;
+            --ak-text: #e0e0e0;
+        }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--ak-dark);
+            color: var(--ak-text);
+            background-image: linear-gradient(rgba(18, 18, 18, 0.9), rgba(18, 18, 18, 0.9)),
+                repeating-linear-gradient(45deg, #1a1a1a 0, #1a1a1a 2px, transparent 2px, transparent 8px);
+            min-height: 100vh;
+        }
+        .font-mono-ak { font-family: 'Share Tech Mono', monospace; }
+        .ak-clip { clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); }
+        .ak-clip-reverse { clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px)); }
+        .ak-stripes { background: repeating-linear-gradient(-45deg, #f5d000, #f5d000 10px, #000 10px, #000 20px); }
+        .ak-panel { background-color: var(--ak-panel); border: 1px solid #333; position: relative; }
+        .ak-panel::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background-color: var(--ak-yellow); }
+        .ak-btn { background-color: #333; color: white; text-transform: uppercase; font-weight: 700; transition: all 0.2s ease; border: 1px solid #555; }
+        .ak-btn:hover { background-color: var(--ak-yellow); color: black; }
+        .ak-btn-primary { background-color: var(--ak-yellow); color: black; border: none; }
+        .ak-btn-primary:hover { background-color: white; }
+        .ak-input { background-color: #0a0a0a; border: 1px solid #444; color: var(--ak-yellow); font-family: 'Share Tech Mono', monospace; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="p-4 md:p-8">
+    <header class="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-end border-b border-gray-700 pb-4">
+        <div>
+            <h1 class="text-4xl font-bold text-white tracking-wider flex items-center gap-3">
+                <span class="w-8 h-8 bg-[#00a2ff] ak-clip inline-block"></span>
+                R.I. MEDICAL DEPARTMENT QUEUE SYSTEM <span class="text-[#f5d000]">v1.0</span>
+            </h1>
+            <p class="font-mono-ak text-gray-400 mt-1">>> TERMINAL // SECURE CONNECTION ESTABLISHED</p>
+        </div>
+        <nav class="mt-4 md:mt-0 flex gap-2 font-mono-ak">
+            <a href="{% url 'booking' %}" class="ak-btn ak-clip px-4 py-2 text-sm">01_BOOKING</a>
+            <a href="{% url 'display' %}" class="ak-btn ak-clip px-4 py-2 text-sm">02_DISPLAY</a>
+            <a href="{% url 'dashboard' %}" class="ak-btn ak-clip px-4 py-2 text-sm">03_STAFF_DASH</a>
+        </nav>
+    </header>
+
+    <main class="max-w-6xl mx-auto">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
