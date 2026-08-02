@@ -41,6 +41,7 @@ class Appointment(models.Model):
     queue_number = models.CharField(max_length=20, blank=True, null=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     served_at = models.DateTimeField(blank=True, null=True)
+    checked_in_at = models.DateTimeField(blank=True, null=True, help_text="Set when the ticket's QR code is scanned/verified at the front desk.")
     qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True)
     assigned_counter = models.ForeignKey(Counter, on_delete=models.SET_NULL, blank=True, null=True)
 

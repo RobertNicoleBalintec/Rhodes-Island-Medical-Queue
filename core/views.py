@@ -4,7 +4,9 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Appointment, Service, Counter
 from .forms import AppointmentForm
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
+import json
+from django.http import JsonResponse
 
 def booking_view(request):
     if request.method == 'POST':
@@ -113,3 +115,48 @@ def update_status(request, appt_id, new_status):
     appt.save()
     messages.success(request, f"Ticket [{appt.queue_number}] updated to {new_status}.")
     return redirect('dashboard')
+
+@staff_member_required
+@require_GET
+def verify_view(request):
+    return render(request, 'verify.html')
+
+
+@staff_member_required
+@require_POST
+def verify_ticket_api(request):
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        payload = {}
+
+    raw_code = (payload.get('code') or '').strip()
+    if not raw_code:
+        return JsonResponse({'valid': False, 'reason': 'EMPTY'})
+
+    # A scanned QR encodes "VERIFY:<queue_number>"; manual entry may just be the bare queue number.
+    if raw_code.upper().startswith('VERIFY:'):
+        queue_number = raw_code.split(':', 1)[1].strip()
+    else:
+        queue_number = raw_code
+
+    try:
+        appt = Appointment.objects.select_related('service').get(queue_number__iexact=queue_number)
+    except Appointment.DoesNotExist:
+        return JsonResponse({'valid': False, 'reason': 'NOT_FOUND', 'submitted_code': raw_code})
+
+    already_checked_in = appt.checked_in_at is not None
+    if not already_checked_in and appt.status not in ('Completed', 'Missed'):
+        appt.checked_in_at = timezone.now()
+        appt.save(update_fields=['checked_in_at'])
+
+    return JsonResponse({
+        'valid': True,
+        'already_checked_in': already_checked_in,
+        'queue_number': appt.queue_number,
+        'customer_name': appt.customer_name,
+        'service': appt.service.name,
+        'appointment_type': appt.get_appointment_type_display(),
+        'status': appt.status,
+        'checked_in_at': timezone.localtime(appt.checked_in_at).strftime('%I:%M:%S %p') if appt.checked_in_at else '—',
+    })
