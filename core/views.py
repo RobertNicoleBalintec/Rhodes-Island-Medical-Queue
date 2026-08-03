@@ -375,3 +375,19 @@ def submit_feedback_view(request, queue_number):
     Feedback.objects.create(appointment=ticket, rating=rating, comment=request.POST.get('comment', '').strip())
     messages.success(request, "Thanks for your feedback!")
     return redirect('ticket_detail', queue_number=queue_number)
+
+def feedback_lookup_view(request):
+    ticket = None
+    queue_number = request.GET.get('queue_number')
+    
+    if queue_number:
+        ticket = Appointment.objects.filter(queue_number__iexact=queue_number).first()
+        if ticket and ticket.status == 'Completed':
+            # Show the ticket detail page which has the feedback form
+            return redirect('ticket_detail', queue_number=ticket.queue_number)
+        elif ticket:
+            messages.error(request, "Your appointment is not yet completed. Please check back later.")
+        else:
+            messages.error(request, "Ticket not found.")
+    
+    return render(request, 'feedback_lookup.html')

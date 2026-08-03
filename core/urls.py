@@ -13,4 +13,5 @@ urlpatterns = [
     path('dashboard/performance/', views.performance_dashboard_view, name='performance_dashboard'),
     path('feedback/<str:queue_number>/', views.submit_feedback_view, name='submit_feedback'),
     path('qr/<str:queue_number>/', views.qr_code_view, name='qr_code'),
+    path('feedback-lookup/', views.feedback_lookup_view, name='feedback_lookup'),
 ]
