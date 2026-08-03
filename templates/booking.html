@@ -42,11 +42,10 @@
         <div class="ak-panel p-8 flex flex-col items-center justify-center min-h-[300px] border border-[#f5d000]/30">
             {% if ticket %}
                 <div class="text-center w-full">
-                    {% if ticket.qr_code %}
-                        <div class="bg-white p-3 inline-block mb-4">
-                            <img src="{{ ticket.qr_code.url }}" alt="QR Ticket" class="w-32 h-32">
-                        </div>
-                    {% endif %}
+                    <!-- QR CODE - GENERATED ON THE FLY -->
+                    <div class="bg-white p-3 inline-block mb-4">
+                        <img src="{% url 'qr_code' queue_number=ticket.queue_number %}" alt="QR Ticket" class="w-32 h-32">
+                    </div>
                     <h3 class="text-5xl font-bold font-mono-ak text-[#f5d000] tracking-widest mb-1">{{ ticket.queue_number }}</h3>
                     <p class="text-gray-300 uppercase mb-4">{{ ticket.customer_name }}</p>
                     <div class="bg-black/50 p-4 text-sm font-mono-ak border border-gray-700 text-left space-y-1">
@@ -55,31 +54,31 @@
                         <p class="text-gray-400">EST. WAIT: <span class="text-white">~{{ estimated_wait }} MINS</span></p>
                     </div>
                     {% if ticket.status == 'Completed' %}
-    <div class="mt-6 pt-6 border-t border-gray-700 text-left">
-        {% if existing_feedback %}
-            <p class="text-xs font-mono-ak text-gray-400 mb-1 text-center">YOUR RATING</p>
-            <p class="text-3xl text-center text-[#f5d000]">{% for i in "12345" %}{% if forloop.counter <= existing_feedback.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}</p>
-            {% if existing_feedback.comment %}
-                <p class="text-sm text-gray-300 italic mt-2 text-center">&ldquo;{{ existing_feedback.comment }}&rdquo;</p>
-            {% endif %}
-            <p class="text-xs font-mono-ak text-gray-500 mt-2 text-center">Thanks for your feedback!</p>
-        {% else %}
-            <p class="text-xs font-mono-ak text-gray-400 mb-3 text-center">HOW WAS YOUR VISIT?</p>
-            <form method="POST" action="{% url 'submit_feedback' ticket.queue_number %}" class="space-y-3">
-                {% csrf_token %}
-                <div class="star-rating flex flex-row-reverse justify-center gap-1">
-                    <input type="radio" id="star5" name="rating" value="5" required><label for="star5">&#9733;</label>
-                    <input type="radio" id="star4" name="rating" value="4" required><label for="star4">&#9733;</label>
-                    <input type="radio" id="star3" name="rating" value="3" required><label for="star3">&#9733;</label>
-                    <input type="radio" id="star2" name="rating" value="2" required><label for="star2">&#9733;</label>
-                    <input type="radio" id="star1" name="rating" value="1" required><label for="star1">&#9733;</label>
-                </div>
-                <textarea name="comment" rows="2" placeholder="Optional comments..." class="ak-input w-full p-2 ak-clip-reverse text-sm"></textarea>
-                <button type="submit" class="ak-btn ak-clip w-full py-2 text-sm">SUBMIT FEEDBACK</button>
-            </form>
-        {% endif %}
-    </div>
-{% endif %}
+                        <div class="mt-6 pt-6 border-t border-gray-700 text-left">
+                            {% if existing_feedback %}
+                                <p class="text-xs font-mono-ak text-gray-400 mb-1 text-center">YOUR RATING</p>
+                                <p class="text-3xl text-center text-[#f5d000]">{% for i in "12345" %}{% if forloop.counter <= existing_feedback.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}</p>
+                                {% if existing_feedback.comment %}
+                                    <p class="text-sm text-gray-300 italic mt-2 text-center">&ldquo;{{ existing_feedback.comment }}&rdquo;</p>
+                                {% endif %}
+                                <p class="text-xs font-mono-ak text-gray-500 mt-2 text-center">Thanks for your feedback!</p>
+                            {% else %}
+                                <p class="text-xs font-mono-ak text-gray-400 mb-3 text-center">HOW WAS YOUR VISIT?</p>
+                                <form method="POST" action="{% url 'submit_feedback' ticket.queue_number %}" class="space-y-3">
+                                    {% csrf_token %}
+                                    <div class="star-rating flex flex-row-reverse justify-center gap-1">
+                                        <input type="radio" id="star5" name="rating" value="5" required><label for="star5">&#9733;</label>
+                                        <input type="radio" id="star4" name="rating" value="4" required><label for="star4">&#9733;</label>
+                                        <input type="radio" id="star3" name="rating" value="3" required><label for="star3">&#9733;</label>
+                                        <input type="radio" id="star2" name="rating" value="2" required><label for="star2">&#9733;</label>
+                                        <input type="radio" id="star1" name="rating" value="1" required><label for="star1">&#9733;</label>
+                                    </div>
+                                    <textarea name="comment" rows="2" placeholder="Optional comments..." class="ak-input w-full p-2 ak-clip-reverse text-sm"></textarea>
+                                    <button type="submit" class="ak-btn ak-clip w-full py-2 text-sm">SUBMIT FEEDBACK</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endif %}
                 </div>
             {% else %}
                 <div class="text-gray-500 font-mono-ak text-center">

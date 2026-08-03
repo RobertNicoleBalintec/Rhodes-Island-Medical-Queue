@@ -18,10 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),  # Includes all views from core/urls.py
+    path('qr/<str:queue_number>/', views.qr_code_view, name='qr_code'),
 ]
 
 if settings.DEBUG:

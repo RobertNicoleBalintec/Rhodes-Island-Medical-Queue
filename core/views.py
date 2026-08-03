@@ -1,12 +1,38 @@
+import json
+import qrcode  # <-- added for QR generation
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.utils import timezone
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse, Http404, HttpResponse  # added HttpResponse
 from .models import Appointment, Service, Counter, Feedback
 from .forms import AppointmentForm
 from django.views.decorators.http import require_GET, require_POST
-import json
+
+
+# ===================== NEW QR CODE VIEW =====================
+def qr_code_view(request, queue_number):
+    """
+    Generate a QR code image on the fly for a given queue number.
+    """
+    try:
+        appt = Appointment.objects.get(queue_number__iexact=queue_number)
+    except Appointment.DoesNotExist:
+        raise Http404("Ticket not found")
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(f"VERIFY:{appt.queue_number}")
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    response = HttpResponse(content_type="image/png")
+    img.save(response, "PNG")
+    return response
+# ============================================================
 
 
 def booking_view(request):
