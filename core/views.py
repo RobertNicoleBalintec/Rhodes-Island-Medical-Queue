@@ -112,6 +112,8 @@ def call_next_counter(request, counter_id, queue_type):
 def update_status(request, appt_id, new_status):
     appt = get_object_or_404(Appointment, id=appt_id)
     appt.status = new_status
+    if new_status in ('Completed', 'Missed') and not appt.ended_at:
+        appt.ended_at = timezone.now()
     appt.save()
     messages.success(request, f"Ticket [{appt.queue_number}] updated to {new_status}.")
     return redirect('dashboard')
@@ -159,4 +161,79 @@ def verify_ticket_api(request):
         'appointment_type': appt.get_appointment_type_display(),
         'status': appt.status,
         'checked_in_at': timezone.localtime(appt.checked_in_at).strftime('%I:%M:%S %p') if appt.checked_in_at else '—',
+    })
+
+@staff_member_required
+def performance_dashboard_view(request):
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    todays = list(
+        Appointment.objects.filter(created_at__gte=today_start)
+        .select_related('service', 'assigned_counter')
+    )
+
+    def avg_minutes(durations):
+        if not durations:
+            return None
+        seconds = sum(d.total_seconds() for d in durations)
+        return round((seconds / len(durations)) / 60, 1)
+
+    completed = [a for a in todays if a.status == 'Completed']
+    missed = [a for a in todays if a.status == 'Missed']
+    resolved_count = len(completed) + len(missed)
+
+    completion_rate = round((len(completed) / resolved_count) * 100, 1) if resolved_count else None
+    no_show_rate = round((len(missed) / resolved_count) * 100, 1) if resolved_count else None
+
+    avg_wait = avg_minutes([a.served_at - a.created_at for a in todays if a.served_at])
+    avg_service_time = avg_minutes([a.ended_at - a.served_at for a in todays if a.served_at and a.ended_at])
+
+    # Per-service breakdown, with a bar width normalized against the busiest service today
+    all_services = list(Service.objects.all())
+    service_counts = {s.id: sum(1 for a in todays if a.service_id == s.id) for s in all_services}
+    max_service_count = max(service_counts.values(), default=0)
+    service_stats = []
+    for service in all_services:
+        s_appts = [a for a in todays if a.service_id == service.id]
+        count = len(s_appts)
+        service_stats.append({
+            'service': service,
+            'count': count,
+            'bar_pct': round((count / max_service_count) * 100) if max_service_count else 0,
+            'avg_wait': avg_minutes([a.served_at - a.created_at for a in s_appts if a.served_at]),
+            'avg_service_time': avg_minutes([a.ended_at - a.served_at for a in s_appts if a.served_at and a.ended_at]),
+        })
+
+    # Per-counter breakdown: throughput + average speed
+    counter_stats = []
+    for counter in Counter.objects.filter(is_active=True):
+        c_resolved = [a for a in todays if a.assigned_counter_id == counter.id and a.status in ('Completed', 'Missed')]
+        counter_stats.append({
+            'counter': counter,
+            'served_count': len(c_resolved),
+            'avg_service_time': avg_minutes([a.ended_at - a.served_at for a in c_resolved if a.served_at and a.ended_at]),
+        })
+
+    # Regular vs Priority — shows whether the priority queue is actually cutting wait time
+    type_stats = []
+    for code, label in Appointment.TYPE_CHOICES:
+        t_appts = [a for a in todays if a.appointment_type == code]
+        type_stats.append({
+            'label': label,
+            'count': len(t_appts),
+            'avg_wait': avg_minutes([a.served_at - a.created_at for a in t_appts if a.served_at]),
+        })
+
+    return render(request, 'performance.html', {
+        'total_today': len(todays),
+        'waiting_count': sum(1 for a in todays if a.status == 'Waiting'),
+        'serving_count': sum(1 for a in todays if a.status == 'Serving'),
+        'completed_count': len(completed),
+        'missed_count': len(missed),
+        'completion_rate': completion_rate,
+        'no_show_rate': no_show_rate,
+        'avg_wait': avg_wait,
+        'avg_service_time': avg_service_time,
+        'service_stats': service_stats,
+        'counter_stats': counter_stats,
+        'type_stats': type_stats,
     })

@@ -10,4 +10,5 @@ urlpatterns = [
     path('dashboard/status/<int:appt_id>/<str:new_status>/', views.update_status, name='update_status'),
     path('dashboard/verify/', views.verify_view, name='verify_ticket'),
     path('dashboard/verify/check/', views.verify_ticket_api, name='verify_ticket_api'),
+    path('dashboard/performance/', views.performance_dashboard_view, name='performance_dashboard'),
 ]

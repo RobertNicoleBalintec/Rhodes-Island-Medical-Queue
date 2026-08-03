@@ -40,6 +40,7 @@ class Appointment(models.Model):
     # Auto-generated fields
     queue_number = models.CharField(max_length=20, blank=True, null=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(blank=True, null=True, help_text="Set when the appointment is marked Completed or Missed. Used to measure transaction duration.")
     served_at = models.DateTimeField(blank=True, null=True)
     checked_in_at = models.DateTimeField(blank=True, null=True, help_text="Set when the ticket's QR code is scanned/verified at the front desk.")
     qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True)
