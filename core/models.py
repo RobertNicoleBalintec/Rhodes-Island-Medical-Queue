@@ -4,6 +4,8 @@ from django.db import models
 from django.utils import timezone
 from django.core.files import File
 import qrcode
+from django.db.models.functions import TruncDate 
+
 
 class Service(models.Model):
     name = models.CharField(max_length=100)
@@ -38,13 +40,21 @@ class Appointment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Waiting')
     
     # Auto-generated fields
-    queue_number = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    queue_number = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(blank=True, null=True, help_text="Set when the appointment is marked Completed or Missed. Used to measure transaction duration.")
     served_at = models.DateTimeField(blank=True, null=True)
     checked_in_at = models.DateTimeField(blank=True, null=True, help_text="Set when the ticket's QR code is scanned/verified at the front desk.")
     qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True)
     assigned_counter = models.ForeignKey(Counter, on_delete=models.SET_NULL, blank=True, null=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                TruncDate('created_at'), 
+                'queue_number', 
+                name='unique_queue_number_per_day'
+            )
+        ]
 
     def save(self, *args, **kwargs):
         # 1. Generate Queue Number reliably based on today's latest ticket
@@ -90,3 +100,14 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"[{self.queue_number}] {self.customer_name} - {self.status}"
+
+class Feedback(models.Model):
+    RATING_CHOICES = [(i, str(i)) for i in range(1, 6)]
+
+    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='feedback')
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.rating}/5 - {self.appointment.queue_number}"

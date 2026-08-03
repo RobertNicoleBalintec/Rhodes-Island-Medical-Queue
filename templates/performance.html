@@ -103,6 +103,65 @@
         <span class="mx-2">|</span>
         Based on {{ completed_count }} completed and {{ missed_count }} missed appointment{{ missed_count|pluralize }} today.
     </div>
+<div class="ak-panel p-6">
+    <h3 class="text-lg font-bold uppercase tracking-widest text-gray-300 mb-4 flex items-center gap-2">
+        <span class="w-3 h-3 bg-green-400"></span> CUSTOMER FEEDBACK <span class="text-gray-600 text-xs normal-case">(all-time)</span>
+    </h3>
 
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-black/60 border border-gray-700 p-4 text-center">
+            <p class="text-3xl font-bold font-mono-ak text-[#f5d000]">{% if avg_rating_all_time is not None %}{{ avg_rating_all_time }}&#9733;{% else %}--{% endif %}</p>
+            <p class="text-[10px] uppercase text-gray-400 mt-1">Overall Avg ({{ feedback_count }} review{{ feedback_count|pluralize }})</p>
+        </div>
+        <div class="bg-black/60 border border-gray-700 p-4 text-center">
+            <p class="text-3xl font-bold font-mono-ak text-green-400">{% if avg_rating_today is not None %}{{ avg_rating_today }}&#9733;{% else %}--{% endif %}</p>
+            <p class="text-[10px] uppercase text-gray-400 mt-1">Today's Avg Rating</p>
+        </div>
+        <div class="bg-black/60 border border-gray-700 p-4">
+            <p class="text-[10px] uppercase text-gray-400 mb-2 text-center">Rating Distribution</p>
+            <div class="space-y-1">
+                {% for row in rating_distribution %}
+                    <div class="flex items-center gap-2 text-xs font-mono-ak">
+                        <span class="text-gray-400 w-4">{{ row.stars }}&#9733;</span>
+                        <div class="bg-black/60 border border-gray-700 h-2 flex-1">
+                            <div class="bg-[#f5d000] h-full" style="width: {{ row.bar_pct }}%;"></div>
+                        </div>
+                        <span class="text-gray-500 w-6 text-right">{{ row.count }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+            <p class="text-xs font-mono-ak text-gray-400 uppercase mb-2">Avg Rating By Service</p>
+            <div class="space-y-2">
+                {% for row in service_ratings %}
+                    <div class="flex justify-between text-xs font-mono-ak border-b border-gray-800 pb-1">
+                        <span class="text-white uppercase">{{ row.service.name }}</span>
+                        <span class="text-gray-400">{% if row.avg_rating is not None %}{{ row.avg_rating }}&#9733; ({{ row.count }}){% else %}No reviews yet{% endif %}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div>
+            <p class="text-xs font-mono-ak text-gray-400 uppercase mb-2">Recent Comments</p>
+            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {% for f in recent_feedback %}
+                    <div class="bg-black/40 border border-gray-800 p-2 text-xs font-mono-ak">
+                        <div class="flex justify-between text-gray-500">
+                            <span class="text-[#f5d000]">{% for i in "12345" %}{% if forloop.counter <= f.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}</span>
+                            <span>{{ f.appointment.queue_number }} &middot; {{ f.appointment.service.name }}</span>
+                        </div>
+                        {% if f.comment %}<p class="text-gray-300 mt-1">{{ f.comment }}</p>{% endif %}
+                    </div>
+                {% empty %}
+                    <p class="text-gray-600 text-xs font-mono-ak">No feedback submitted yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
 </div>
 {% endblock %}

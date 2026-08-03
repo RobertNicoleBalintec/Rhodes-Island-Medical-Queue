@@ -11,4 +11,5 @@ urlpatterns = [
     path('dashboard/verify/', views.verify_view, name='verify_ticket'),
     path('dashboard/verify/check/', views.verify_ticket_api, name='verify_ticket_api'),
     path('dashboard/performance/', views.performance_dashboard_view, name='performance_dashboard'),
+    path('ticket/<str:queue_number>/feedback/', views.submit_feedback_view, name='submit_feedback'),
 ]

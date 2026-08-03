@@ -32,6 +32,11 @@
         .ak-btn-primary { background-color: var(--ak-yellow); color: black; border: none; }
         .ak-btn-primary:hover { background-color: white; }
         .ak-input { background-color: #0a0a0a; border: 1px solid #444; color: var(--ak-yellow); font-family: 'Share Tech Mono', monospace; }
+        .star-rating input { display: none; }
+        .star-rating label { cursor: pointer; font-size: 2rem; line-height: 1; color: #444; transition: color 0.15s ease; }
+        .star-rating input:checked ~ label { color: var(--ak-yellow); }
+        .star-rating label:hover,
+        .star-rating label:hover ~ label { color: var(--ak-yellow); }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
