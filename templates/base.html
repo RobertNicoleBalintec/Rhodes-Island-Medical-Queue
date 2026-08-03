@@ -61,5 +61,11 @@
     <main class="max-w-6xl mx-auto">
         {% block content %}{% endblock %}
     </main>
+    <div class="fixed bottom-4 right-4 z-50">
+        <a href="{% url 'feedback_lookup' %}" 
+            class="ak-btn ak-btn-primary ak-clip px-6 py-3 shadow-lg text-lg">
+                ⭐ Feedback
+        </a>
+    </div>
 </body>
 </html>
