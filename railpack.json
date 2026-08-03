@@ -1,0 +1,5 @@
+{
+  "deploy": {
+    "startCommand": "python manage.py migrate && gunicorn config.wsgi --log-file -"
+  }
+}
