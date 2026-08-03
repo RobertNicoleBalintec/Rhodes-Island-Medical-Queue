@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="ak-panel ak-clip p-8">
+        <div class="flex items-center gap-2 mb-6">
+            <div class="w-3 h-3 bg-[#00a2ff]"></div>
+            <h2 class="text-2xl font-bold uppercase tracking-widest">QR Scanner</h2>
+        </div>
+
+        <div class="bg-black border border-gray-700 aspect-square w-full max-w-xs mx-auto relative overflow-hidden flex items-center justify-center">
+            <video id="qr-video" class="w-full h-full object-cover hidden" muted playsinline></video>
+            <canvas id="qr-canvas" class="hidden"></canvas>
+            <div id="scanner-placeholder" class="text-center text-gray-500 font-mono-ak text-xs p-4">
+                [ CAMERA OFF ]<br>Tap START SCANNER to begin.
+            </div>
+            <div id="scan-frame" class="hidden absolute inset-8 border-2 border-[#f5d000]"></div>
+        </div>
+
+        <p id="scanner-status" class="text-center font-mono-ak text-xs text-gray-400 mt-3 mb-4">SCANNER IDLE</p>
+
+        <div class="flex gap-2">
+            <button id="start-btn" type="button" class="ak-btn ak-btn-primary ak-clip flex-1 py-3 text-sm">START SCANNER</button>
+            <button id="stop-btn" type="button" class="ak-btn ak-clip flex-1 py-3 text-sm hidden">STOP</button>
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-gray-700">
+            <label class="block text-xs font-mono-ak text-gray-400 mb-2">MANUAL_ENTRY (queue number)</label>
+            <form id="manual-form" class="flex gap-2">
+                {% csrf_token %}
+                <input id="manual-code" type="text" placeholder="e.g. R-013" class="ak-input w-full p-3 ak-clip-reverse uppercase" autocomplete="off">
+                <button type="submit" class="ak-btn ak-clip px-5 text-sm whitespace-nowrap">CHECK</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="flex flex-col gap-4">
+        <div class="h-10 ak-stripes w-full ak-clip"></div>
+        <div id="result-panel" class="ak-panel p-8 flex flex-col items-center justify-center min-h-[300px] border border-[#f5d000]/30">
+            <div class="text-gray-500 font-mono-ak text-center">
+                [ AWAITING SCAN ]<br>Scan a client's ticket QR code, or enter their queue number manually, to verify.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+(function () {
+    const video = document.getElementById('qr-video');
+    const canvas = document.getElementById('qr-canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const placeholder = document.getElementById('scanner-placeholder');
+    const scanFrame = document.getElementById('scan-frame');
+    const statusEl = document.getElementById('scanner-status');
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const resultPanel = document.getElementById('result-panel');
+    const manualForm = document.getElementById('manual-form');
+    const manualInput = document.getElementById('manual-code');
+    const csrftoken = manualForm.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    let stream = null;
+    let scanning = false;
+
+    function setStatus(text) {
+        statusEl.textContent = text;
+    }
+
+    async function startScanner() {
+        if (typeof window.jsQR !== 'function') {
+            setStatus('SCANNER LIBRARY FAILED TO LOAD — check connection, use manual entry');
+            return;
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setStatus('CAMERA NOT SUPPORTED ON THIS DEVICE — use manual entry');
+            return;
+        }
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        } catch (err) {
+            setStatus('CAMERA ACCESS DENIED — use manual entry below');
+            return;
+        }
+        video.srcObject = stream;
+        await video.play();
+        placeholder.classList.add('hidden');
+        video.classList.remove('hidden');
+        scanFrame.classList.remove('hidden');
+        startBtn.classList.add('hidden');
+        stopBtn.classList.remove('hidden');
+        scanning = true;
+        setStatus('SCANNING...');
+        requestAnimationFrame(tick);
+    }
+
+    function stopScanner() {
+        scanning = false;
+        if (stream) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            stream = null;
+        }
+        video.classList.add('hidden');
+        scanFrame.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        startBtn.classList.remove('hidden');
+        stopBtn.classList.add('hidden');
+        setStatus('SCANNER IDLE');
+    }
+
+    function tick() {
+        if (!scanning) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = window.jsQR(imageData.data, imageData.width, imageData.height);
+            if (code && code.data) {
+                scanning = false;
+                setStatus('CODE DETECTED — VERIFYING...');
+                submitCode(code.data);
+                return;
+            }
+        }
+        requestAnimationFrame(tick);
+    }
+
+    async function submitCode(code) {
+        try {
+            const resp = await fetch("{% url 'verify_ticket_api' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({ code: code }),
+            });
+            const data = await resp.json();
+            renderResult(data);
+        } catch (err) {
+            renderResult({ valid: false, reason: 'NETWORK_ERROR' });
+        }
+        if (stream) {
+            setStatus('PAUSED — tap SCAN NEXT to continue');
+        }
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+
+    function renderResult(data) {
+        let html = '';
+        if (!data.valid) {
+            const msg = data.reason === 'NOT_FOUND'
+                ? 'No appointment matches this code' + (data.submitted_code ? ': "' + escapeHtml(data.submitted_code) + '"' : '') + '.'
+                : data.reason === 'EMPTY'
+                    ? 'No code was entered.'
+                    : 'Could not reach the server. Try again.';
+            html = ''
+                + '<div class="text-center w-full">'
+                + '<div class="text-6xl mb-3 text-red-400">&#10007;</div>'
+                + '<h3 class="text-2xl font-bold uppercase tracking-widest text-red-400 mb-2">Invalid Ticket</h3>'
+                + '<p class="text-gray-400 font-mono-ak text-sm">' + msg + '</p>'
+                + '</div>';
+        } else {
+            const usedUp = data.status === 'Completed' || data.status === 'Missed';
+            const headline = usedUp
+                ? { color: 'text-amber-400', label: 'Already ' + data.status.toUpperCase() }
+                : (data.already_checked_in
+                    ? { color: 'text-amber-400', label: 'Already Checked In' }
+                    : { color: 'text-green-400', label: 'Verified' });
+
+            html = ''
+                + '<div class="text-center w-full">'
+                + '<div class="text-6xl mb-3 ' + headline.color + '">&#10003;</div>'
+                + '<h3 class="text-2xl font-bold uppercase tracking-widest ' + headline.color + ' mb-1">' + headline.label + '</h3>'
+                + '<p class="text-5xl font-bold font-mono-ak text-[#f5d000] tracking-widest my-3">' + escapeHtml(data.queue_number) + '</p>'
+                + '<p class="text-gray-300 uppercase mb-4">' + escapeHtml(data.customer_name) + '</p>'
+                + '<div class="bg-black/50 p-4 text-sm font-mono-ak border border-gray-700 text-left space-y-1">'
+                + '<p class="text-gray-400">SERVICE: <span class="text-white">' + escapeHtml(data.service) + '</span></p>'
+                + '<p class="text-gray-400">TYPE: <span class="text-white">' + escapeHtml(data.appointment_type) + '</span></p>'
+                + '<p class="text-gray-400">CURRENT STATUS: <span class="text-white">' + escapeHtml(data.status) + '</span></p>'
+                + '<p class="text-gray-400">CHECKED IN: <span class="text-white">' + escapeHtml(data.checked_in_at) + '</span></p>'
+                + '</div>'
+                + (usedUp ? '<p class="text-amber-400 font-mono-ak text-xs mt-4">&#9888; This ticket\u2019s service has already ended \u2014 confirm before allowing entry.</p>' : '')
+                + '</div>';
+        }
+
+        if (stream) {
+            html += '<button id="scan-next-btn" type="button" class="ak-btn ak-clip w-full py-3 mt-6 text-sm">SCAN NEXT TICKET</button>';
+        }
+
+        resultPanel.innerHTML = html;
+
+        const nextBtn = document.getElementById('scan-next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function () {
+                scanning = true;
+                setStatus('SCANNING...');
+                requestAnimationFrame(tick);
+            });
+        }
+    }
+
+    startBtn.addEventListener('click', startScanner);
+    stopBtn.addEventListener('click', stopScanner);
+    manualForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const val = manualInput.value.trim();
+        if (!val) return;
+        setStatus('VERIFYING...');
+        submitCode(val).then(function () { manualInput.value = ''; });
+    });
+
+    window.addEventListener('beforeunload', stopScanner);
+})();
+</script>
+{% endblock %}

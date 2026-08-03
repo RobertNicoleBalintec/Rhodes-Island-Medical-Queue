@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="space-y-8">
+    
+    <!-- Top Terminal Header -->
+    <div class="ak-panel p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h2 class="text-2xl font-bold uppercase tracking-widest text-[#00a2ff]">Multi-Desk Operations Control</h2>
+            <p class="text-xs font-mono-ak text-gray-400">ACTIVE DESKS OPERATIONAL // LOGGED IN AS: {{ user.username|upper }}</p>
+        </div>
+        <div class="flex gap-4 font-mono-ak text-xs">
+            <div class="bg-black/60 border border-gray-700 px-3 py-2">
+                NEXT REGULAR: <b class="text-[#f5d000]">{% if next_regular %}{{ next_regular.queue_number }}{% else %}NONE{% endif %}</b>
+            </div>
+            <div class="bg-black/60 border border-gray-700 px-3 py-2">
+                NEXT PRIORITY: <b class="text-[#ff3333]">{% if next_priority %}{{ next_priority.queue_number }}{% else %}NONE{% endif %}</b>
+            </div>
+        </div>
+    </div>
+
+    <!-- Django Flash Messages Banner -->
+    {% if messages %}
+        <div class="space-y-2 font-mono-ak">
+            {% for message in messages %}
+                <div class="p-4 border text-xs flex items-center justify-between {% if message.tags == 'warning' %}bg-red-950/80 border-red-500 text-red-200{% elif message.tags == 'success' %}bg-green-950/80 border-green-500 text-green-200{% else %}bg-blue-950/80 border-blue-500 text-blue-200{% endif %}">
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- All Counters Live Grid -->
+    <div>
+        <h3 class="text-lg font-bold uppercase tracking-widest text-gray-300 mb-4 flex items-center gap-2">
+            <span class="w-3 h-3 bg-[#f5d000]"></span> ALL COUNTERS LIVE MONITOR
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for item in counter_data %}
+                <div class="ak-panel p-5 bg-black/80 flex flex-col justify-between border-t-2 border-t-[#f5d000] relative">
+                    <div>
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+                            <span class="font-bold text-sm font-mono-ak text-white">{{ item.counter.name|upper }}</span>
+                            {% if item.currently_serving %}
+                                <span class="bg-green-950 text-green-400 border border-green-600 text-[10px] font-mono-ak px-2 py-0.5 uppercase">BUSY</span>
+                            {% else %}
+                                <span class="bg-gray-800 text-gray-400 border border-gray-600 text-[10px] font-mono-ak px-2 py-0.5 uppercase">IDLE</span>
+                            {% endif %}
+                        </div>
+
+                        {% if item.currently_serving %}
+                            <div class="my-4 text-center">
+                                <span class="text-xs font-mono-ak text-gray-400">SERVICING CLIENT</span>
+                                <h1 class="text-4xl font-bold font-mono-ak text-[#f5d000] my-1">{{ item.currently_serving.queue_number }}</h1>
+                                <p class="text-sm font-bold text-white uppercase truncate">{{ item.currently_serving.customer_name }}</p>
+                                <p class="text-xs font-mono-ak text-gray-400 truncate">{{ item.currently_serving.service.name }}</p>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 mt-4">
+                                <a href="{% url 'update_status' item.currently_serving.id 'Completed' %}" class="bg-green-900 hover:bg-green-700 text-center text-white font-bold py-2 ak-clip text-[10px] border border-green-500">COMPLETE</a>
+                                <a href="{% url 'update_status' item.currently_serving.id 'Missed' %}" class="bg-red-900 hover:bg-red-700 text-center text-white font-bold py-2 ak-clip text-[10px] border border-red-500">NO-SHOW</a>
+                            </div>
+                        {% else %}
+                            <div class="my-8 text-center">
+                                <h1 class="text-2xl font-bold font-mono-ak text-gray-600">DESK READY</h1>
+                                <p class="text-[11px] font-mono-ak text-gray-500 mt-1">Awaiting client assignment</p>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 mt-4">
+                                <a href="{% url 'call_next_counter' item.counter.id 'R' %}" class="ak-btn text-center text-xs py-2 ak-clip">CALL REG</a>
+                                <a href="{% url 'call_next_counter' item.counter.id 'P' %}" class="ak-btn text-center text-xs py-2 ak-clip border-[#ff3333] text-[#ff3333]">CALL PRIO</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Master Appointments Table (Includes Service Required Column) -->
+    <div class="ak-panel p-6">
+        <h3 class="text-lg font-bold uppercase tracking-widest text-gray-300 mb-4 flex items-center gap-2">
+            <span class="w-3 h-3 bg-[#00a2ff]"></span> APPOINTMENTS LOG
+        </h3>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left font-mono-ak text-xs border-collapse">
+                <thead>
+                    <tr class="border-b border-gray-700 bg-black text-gray-400 uppercase">
+                        <th class="p-3">QUEUE #</th>
+                        <th class="p-3">CLIENT NAME</th>
+                        <th class="p-3 text-[#f5d000]">SERVICE REQUIRED</th>
+                        <th class="p-3">TYPE</th>
+                        <th class="p-3">STATUS</th>
+                        <th class="p-3">DATE / TIME</th>
+                        <th class="p-3">ASSIGNED DESK</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                    {% for appt in recent_appointments %}
+                        <tr class="hover:bg-gray-900/50 transition">
+                            <td class="p-3 font-bold text-base text-white">{{ appt.queue_number }}</td>
+                            <td class="p-3 uppercase font-sans font-semibold text-gray-200">{{ appt.customer_name }}</td>
+                            <td class="p-3 text-[#f5d000] font-bold">{{ appt.service.name }}</td>
+                            <td class="p-3">
+                                {% if appt.appointment_type == 'P' %}
+                                    <span class="text-[#ff3333] font-bold">PRIORITY</span>
+                                {% else %}
+                                    <span class="text-gray-400">REGULAR</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-3">
+                                {% if appt.status == 'Waiting' %}
+                                    <span class="text-blue-400">WAITING</span>
+                                {% elif appt.status == 'Serving' %}
+                                    <span class="text-yellow-400 font-bold">SERVING</span>
+                                {% elif appt.status == 'Completed' %}
+                                    <span class="text-green-400">COMPLETED</span>
+                                {% else %}
+                                    <span class="text-red-400">MISSED</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-3 text-gray-400">{{ appt.created_at|date:"Y-m-d H:i" }}</td>
+                            <td class="p-3 text-gray-300">{{ appt.assigned_counter.name|default:"--" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="p-6 text-center text-gray-600">NO RECENT APPOINTMENTS FOUND</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

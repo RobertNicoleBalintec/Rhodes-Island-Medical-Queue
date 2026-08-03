@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block content %}
+{% if messages %}
+    <div class="max-w-2xl mx-auto mb-6 space-y-2 font-mono-ak">
+        {% for message in messages %}
+            <div class="p-4 border text-xs {% if message.tags == 'error' %}bg-red-950/80 border-red-500 text-red-200{% elif message.tags == 'success' %}bg-green-950/80 border-green-500 text-green-200{% else %}bg-blue-950/80 border-blue-500 text-blue-200{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="ak-panel ak-clip p-8">
+        <div class="flex items-center gap-2 mb-6">
+            <div class="w-3 h-3 bg-[#f5d000]"></div>
+            <h2 class="text-2xl font-bold uppercase tracking-widest">Client Registration</h2>
+        </div>
+        <form method="POST" action="{% url 'booking' %}" class="space-y-5">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-mono-ak text-gray-400 mb-1">CLIENT_NAME</label>
+                {{ form.customer_name }}
+            </div>
+            <div>
+                <label class="block text-xs font-mono-ak text-gray-400 mb-1">SERVICE_REQUIRED</label>
+                {{ form.service }}
+            </div>
+            <div>
+                <label class="block text-xs font-mono-ak text-gray-400 mb-1">PRIORITY_STATUS</label>
+                <div class="mt-2 text-white">
+                    {{ form.appointment_type }}
+                </div>
+            </div>
+            <button type="submit" class="ak-btn ak-btn-primary ak-clip w-full py-4 mt-6 text-lg">
+                GENERATE TICKET
+            </button>
+        </form>
+    </div>
+
+    <div class="flex flex-col gap-4">
+        <div class="h-10 ak-stripes w-full ak-clip"></div>
+        <div class="ak-panel p-8 flex flex-col items-center justify-center min-h-[300px] border border-[#f5d000]/30">
+            {% if ticket %}
+                <div class="text-center w-full">
+                    {% if ticket.qr_code %}
+                        <div class="bg-white p-3 inline-block mb-4">
+                            <img src="{{ ticket.qr_code.url }}" alt="QR Ticket" class="w-32 h-32">
+                        </div>
+                    {% endif %}
+                    <h3 class="text-5xl font-bold font-mono-ak text-[#f5d000] tracking-widest mb-1">{{ ticket.queue_number }}</h3>
+                    <p class="text-gray-300 uppercase mb-4">{{ ticket.customer_name }}</p>
+                    <div class="bg-black/50 p-4 text-sm font-mono-ak border border-gray-700 text-left space-y-1">
+                        <p class="text-gray-400">SERVICE: <span class="text-white">{{ ticket.service.name }}</span></p>
+                        <p class="text-gray-400">STATUS: <span class="text-green-400">{{ ticket.status }}</span></p>
+                        <p class="text-gray-400">EST. WAIT: <span class="text-white">~{{ estimated_wait }} MINS</span></p>
+                    </div>
+                    {% if ticket.status == 'Completed' %}
+    <div class="mt-6 pt-6 border-t border-gray-700 text-left">
+        {% if existing_feedback %}
+            <p class="text-xs font-mono-ak text-gray-400 mb-1 text-center">YOUR RATING</p>
+            <p class="text-3xl text-center text-[#f5d000]">{% for i in "12345" %}{% if forloop.counter <= existing_feedback.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}</p>
+            {% if existing_feedback.comment %}
+                <p class="text-sm text-gray-300 italic mt-2 text-center">&ldquo;{{ existing_feedback.comment }}&rdquo;</p>
+            {% endif %}
+            <p class="text-xs font-mono-ak text-gray-500 mt-2 text-center">Thanks for your feedback!</p>
+        {% else %}
+            <p class="text-xs font-mono-ak text-gray-400 mb-3 text-center">HOW WAS YOUR VISIT?</p>
+            <form method="POST" action="{% url 'submit_feedback' ticket.queue_number %}" class="space-y-3">
+                {% csrf_token %}
+                <div class="star-rating flex flex-row-reverse justify-center gap-1">
+                    <input type="radio" id="star5" name="rating" value="5" required><label for="star5">&#9733;</label>
+                    <input type="radio" id="star4" name="rating" value="4" required><label for="star4">&#9733;</label>
+                    <input type="radio" id="star3" name="rating" value="3" required><label for="star3">&#9733;</label>
+                    <input type="radio" id="star2" name="rating" value="2" required><label for="star2">&#9733;</label>
+                    <input type="radio" id="star1" name="rating" value="1" required><label for="star1">&#9733;</label>
+                </div>
+                <textarea name="comment" rows="2" placeholder="Optional comments..." class="ak-input w-full p-2 ak-clip-reverse text-sm"></textarea>
+                <button type="submit" class="ak-btn ak-clip w-full py-2 text-sm">SUBMIT FEEDBACK</button>
+            </form>
+        {% endif %}
+    </div>
+{% endif %}
+                </div>
+            {% else %}
+                <div class="text-gray-500 font-mono-ak text-center">
+                    [ AWAITING INPUT ]<br>Fill out the registration form to receive your queue ticket.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<meta http-equiv="refresh" content="5">
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-bold uppercase tracking-widest"><span class="text-[#00a2ff]">LIVE</span> QUEUE MONITOR</h2>
+    <div class="font-mono-ak text-sm bg-black px-3 py-1 border border-gray-700 flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+        AUTO-SYNC: ACTIVE (5s)
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Active Counters Grid -->
+    <div class="lg:col-span-2 ak-panel p-6 border-l-4 border-l-[#f5d000]">
+        <h3 class="text-gray-400 font-mono-ak mb-4">>> NOW SERVING</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for item in serving %}
+                <div class="bg-black border border-gray-800 p-4 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 {% if item.appointment_type == 'P' %}bg-[#ff3333] text-black font-bold{% else %}bg-[#333] text-white{% endif %} text-[10px] font-mono-ak px-2 py-1">
+                        {{ item.assigned_counter.name|default:"COUNTER 1"|upper }}
+                    </div>
+                    <div class="text-{% if item.appointment_type == 'P' %}[#ff3333]{% else %}[#f5d000]{% endif %} text-5xl font-bold font-mono-ak mt-4">
+                        {{ item.queue_number }}
+                    </div>
+                    <div class="text-gray-400 text-xs mt-2 uppercase truncate">{{ item.customer_name }}</div>
+                </div>
+            {% empty %}
+                <div class="col-span-3 text-center text-gray-600 font-mono-ak py-8">
+                    NO ACTIVE TICKETS BEING SERVED
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Waiting Queue List -->
+    <div class="ak-panel p-6 border-l-4 border-l-[#00a2ff]">
+        <h3 class="text-gray-400 font-mono-ak mb-4">>> UPCOMING QUEUE</h3>
+        <ul class="space-y-3 font-mono-ak text-xl">
+            {% for item in waiting %}
+                <li class="flex justify-between border-b border-gray-800 pb-2">
+                    <span class="{% if item.appointment_type == 'P' %}text-[#ff3333]{% else %}text-white{% endif %} font-bold">
+                        {{ item.queue_number }}
+                    </span>
+                    <span class="text-gray-500 text-sm">{{ item.get_appointment_type_display }}</span>
+                </li>
+            {% empty %}
+                <li class="text-gray-600 text-sm">NO WAITING CLIENTS</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
