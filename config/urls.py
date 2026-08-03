@@ -21,8 +21,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('core.urls')),  # Includes all views from core/urls.py
-    path('qr/<str:queue_number>/', views.qr_code_view, name='qr_code'),
+    path('', include('core.urls')), 
 ]
 
 if settings.DEBUG:
